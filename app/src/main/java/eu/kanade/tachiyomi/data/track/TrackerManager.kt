@@ -12,6 +12,7 @@ import eu.kanade.tachiyomi.data.track.myanimelist.MyAnimeList
 import eu.kanade.tachiyomi.data.track.novellist.NovelList
 import eu.kanade.tachiyomi.data.track.novelupdates.NovelUpdates
 import eu.kanade.tachiyomi.data.track.ranobedb.RanobeDb
+import eu.kanade.tachiyomi.data.track.custom.CustomTracker
 import eu.kanade.tachiyomi.data.track.shikimori.Shikimori
 import eu.kanade.tachiyomi.data.track.suwayomi.Suwayomi
 import kotlinx.coroutines.flow.combine
@@ -26,6 +27,7 @@ class TrackerManager {
         const val NOVELUPDATES = 100L
         const val NOVELLIST = 101L
         const val RANOBEDB = 102L
+        const val CUSTOM = 103L
     }
 
     val myAnimeList = MyAnimeList(1L)
@@ -45,6 +47,9 @@ class TrackerManager {
     val novelList = NovelList(NOVELLIST)
     val ranobeDb = RanobeDb(RANOBEDB)
 
+    // Self-hosted Shiori sync server: syncs exact reading position with the browser extension.
+    val custom = CustomTracker(CUSTOM)
+
     val trackers = listOf(
         myAnimeList,
         aniList,
@@ -60,6 +65,7 @@ class TrackerManager {
         ranobeDb,
         mangaBaka,
         hikka,
+        custom,
     )
 
     /**

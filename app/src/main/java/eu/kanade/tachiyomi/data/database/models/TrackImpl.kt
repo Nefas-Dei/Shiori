@@ -31,4 +31,10 @@ class TrackImpl : Track {
     override var tracking_url: String = ""
 
     override var private: Boolean = false
+
+    override var progress_site: String = ""
+    override var progress_series_key: String = ""
+    override var progress_percent: Double = 0.0
+    override var progress_paragraph: Long = -1
+    override var progress_updated_at: Long = 0
 }

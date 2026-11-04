@@ -18,6 +18,11 @@ object TrackMapper {
         startDate: Long,
         finishDate: Long,
         private: Boolean,
+        progressSite: String,
+        progressSeriesKey: String,
+        progressPercent: Double,
+        progressParagraph: Long,
+        progressUpdatedAt: Long,
     ): Track = Track(
         id = id,
         mangaId = mangaId,
@@ -33,5 +38,10 @@ object TrackMapper {
         startDate = startDate,
         finishDate = finishDate,
         private = private,
+        progressSite = progressSite,
+        progressSeriesKey = progressSeriesKey,
+        progressPercent = progressPercent,
+        progressParagraph = progressParagraph,
+        progressUpdatedAt = progressUpdatedAt,
     )
 }

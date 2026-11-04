@@ -107,6 +107,8 @@ object SettingsTrackingScreen : SearchableSettings {
                     TrackingLoginDialog(
                         tracker = tracker,
                         uNameStringRes = uNameStringRes,
+                        usernameLabel = usernameLabel,
+                        passwordLabel = passwordLabel,
                         onDismissRequest = { dialog = null },
                     )
                 }
@@ -229,6 +231,23 @@ object SettingsTrackingScreen : SearchableSettings {
                 title = "Novel Trackers",
                 preferenceItems = listOf(
                     Preference.PreferenceItem.TrackerPreference(
+                        tracker = trackerManager.custom,
+                        login = {
+                            dialog = LoginDialog(
+                                tracker = trackerManager.custom,
+                                uNameStringRes = MR.strings.username,
+                                usernameLabel = "Server URL",
+                                passwordLabel = "Sync token",
+                            )
+                        },
+                        logout = { dialog = LogoutDialog(trackerManager.custom) },
+                    ),
+                    Preference.PreferenceItem.InfoPreference(
+                        "Shiori Sync pairs this app with the Shiori browser extension for exact reading-position sync. " +
+                            "Server URL: the base URL of your sync server (e.g. https://shiori.example.workers.dev). " +
+                            "Sync token: the same token configured in the browser extension.",
+                    ),
+                    Preference.PreferenceItem.TrackerPreference(
                         tracker = trackerManager.novelUpdates,
                         login = {
                             // Use WebView-based login for NovelUpdates
@@ -348,6 +367,8 @@ object SettingsTrackingScreen : SearchableSettings {
     private fun TrackingLoginDialog(
         tracker: Tracker,
         uNameStringRes: StringResource,
+        usernameLabel: String? = null,
+        passwordLabel: String? = null,
         onDismissRequest: () -> Unit,
     ) {
         val context = LocalContext.current
@@ -382,7 +403,7 @@ object SettingsTrackingScreen : SearchableSettings {
                             .semantics { contentType = ContentType.Username + ContentType.EmailAddress },
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text(text = stringResource(uNameStringRes)) },
+                        label = { Text(text = usernameLabel ?: stringResource(uNameStringRes)) },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         singleLine = true,
                         isError = inputError && !processing,
@@ -395,7 +416,7 @@ object SettingsTrackingScreen : SearchableSettings {
                             .semantics { contentType = ContentType.Password },
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text(text = stringResource(MR.strings.password)) },
+                        label = { Text(text = passwordLabel ?: stringResource(MR.strings.password)) },
                         trailingIcon = {
                             IconButton(onClick = { hidePassword = !hidePassword }) {
                                 Icon(
@@ -814,6 +835,8 @@ object SettingsTrackingScreen : SearchableSettings {
 private data class LoginDialog(
     val tracker: Tracker,
     val uNameStringRes: StringResource,
+    val usernameLabel: String? = null,
+    val passwordLabel: String? = null,
 )
 
 private data class LogoutDialog(

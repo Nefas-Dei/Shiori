@@ -158,7 +158,7 @@ object AboutScreen : Screen() {
                 item {
                     TextPreferenceWidget(
                         title = stringResource(MR.strings.privacy_policy),
-                        onPreferenceClick = { uriHandler.openUri("https://tsundoku-otaku.github.io/privacy/") },
+                        onPreferenceClick = { uriHandler.openUri("https://github.com/Nefas-Dei/Shiori") },
                     )
                 }
 
@@ -172,32 +172,17 @@ object AboutScreen : Screen() {
                         LinkIcon(
                             label = stringResource(MR.strings.website),
                             icon = Icons.Outlined.Public,
-                            url = "https://tsundoku-otaku.github.io",
+                            url = "https://github.com/Nefas-Dei/Shiori",
                         )
                         LinkIcon(
                             label = "Discord",
                             icon = CustomIcons.Discord,
                             url = "https://discord.gg/RycBkEgrPE",
                         )
-                        // LinkIcon(
-                        //     label = "X",
-                        //     icon = CustomIcons.X,
-                        //     url = "https://x.com/tsundoku-otaku",
-                        // )
-                        // LinkIcon(
-                        //     label = "Facebook",
-                        //     icon = CustomIcons.Facebook,
-                        //     url = "https://facebook.com/tsundoku-otaku",
-                        // )
-                        // LinkIcon(
-                        //     label = "Reddit",
-                        //     icon = CustomIcons.Reddit,
-                        //     url = "https://www.reddit.com/r/tsundoku-otaku",
-                        // )
                         LinkIcon(
                             label = "GitHub",
                             icon = CustomIcons.Github,
-                            url = "https://github.com/tsundoku-otaku",
+                            url = "https://github.com/Nefas-Dei/Shiori",
                         )
                     }
                 }

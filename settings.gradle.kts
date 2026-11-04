@@ -7,6 +7,9 @@ pluginManagement {
         maven(url = "https://www.jitpack.io")
     }
 }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
 
 dependencyResolutionManagement {
     versionCatalogs {
@@ -28,7 +31,7 @@ dependencyResolutionManagement {
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-rootProject.name = "Tsundoku"
+rootProject.name = "Shiori"
 include(":app")
 include(":baseline-profile")
 include(":core-metadata")

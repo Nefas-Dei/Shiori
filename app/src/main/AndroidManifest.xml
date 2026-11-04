@@ -202,6 +202,23 @@
             android:process=":error_handler" />
 
         <activity
+            android:name=".ui.pairing.PairingActivity"
+            android:exported="true"
+            android:label="@string/track_activity_name"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="shiori" />
+                <data android:host="pair" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".ui.deeplink.DeepLinkActivity"
             android:exported="true"
             android:label="@string/action_search"

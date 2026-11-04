@@ -28,6 +28,11 @@ fun Track.toDbTrack(): DbTrack = DbTrack.create(trackerId).also {
     it.started_reading_date = startDate
     it.finished_reading_date = finishDate
     it.private = private
+    it.progress_site = progressSite
+    it.progress_series_key = progressSeriesKey
+    it.progress_percent = progressPercent
+    it.progress_paragraph = progressParagraph
+    it.progress_updated_at = progressUpdatedAt
 }
 
 fun DbTrack.toDomainTrack(idRequired: Boolean = true): Track? {
@@ -47,5 +52,10 @@ fun DbTrack.toDomainTrack(idRequired: Boolean = true): Track? {
         startDate = started_reading_date,
         finishDate = finished_reading_date,
         private = private,
+        progressSite = progress_site,
+        progressSeriesKey = progress_series_key,
+        progressPercent = progress_percent,
+        progressParagraph = progress_paragraph,
+        progressUpdatedAt = progress_updated_at,
     )
 }
