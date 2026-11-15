@@ -137,6 +137,7 @@ class ReaderViewModel @JvmOverloads constructor(
     private val trackChapter: TrackChapter = Injekt.get(),
     private val getTracks: GetTracks = Injekt.get(),
     private val insertTrack: InsertTrack = Injekt.get(),
+    private val syncChapterProgressWithTrack: eu.kanade.domain.track.interactor.SyncChapterProgressWithTrack = Injekt.get(),
     private val trackerManager: TrackerManager = Injekt.get(),
     private val sourceTrackerDispatcher: eu.kanade.tachiyomi.data.track.source.SourceTrackerDispatcher = Injekt.get(),
     private val getManga: GetManga = Injekt.get(),
@@ -297,16 +298,6 @@ class ReaderViewModel @JvmOverloads constructor(
             }
              .map { it.toDbChapter() }
              .map(::ReaderChapter)
-     }
-
-    /**
-     * Unfiltered chapter list in reading order. Auto-delete must use this instead of
-     * [chapterList], which can exclude read or filtered chapters and therefore target the
-     * wrong chapter when computing the "N slots before current" position.
-     */
-    private val fullChapterList by lazy {
-        val chapters = runBlocking { getChaptersByMangaId.await(manga!!.id, applyScanlatorFilter = true) }
-        chapters.sortedWith(getChapterSort(manga!!, sortDescending = false))
     }
 
     private val pendingTranslationAheadChapterIds = mutableSetOf<Long>()
@@ -500,7 +491,10 @@ class ReaderViewModel @JvmOverloads constructor(
             for (track in boundTracks) {
                 runCatching {
                     val updated = tracker.refresh(track.toDbTrack()).toDomainTrack(idRequired = true)!!
-                    insertTrack.await(updated)
+                    // Route through the chapter sync so chapters completed on another
+                    // device (e.g. finished in the browser) are marked read here too —
+                    // the same forward-only application the tracker sheet performs.
+                    syncChapterProgressWithTrack.await(targetManga.id, updated, tracker)
                     if (shioriPulledTrack == null || updated.progressUpdatedAt > shioriPulledTrack!!.progressUpdatedAt) {
                         shioriPulledTrack = updated
                     }
@@ -1051,23 +1045,54 @@ class ReaderViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Determines if deleting option is enabled and nth to last chapter actually exists.
-     * If both conditions are satisfied enqueues chapter for delete
+     * Determines if deleting option is enabled and enqueues deletion of every read
+     * chapter that falls outside the keep window (the [removeAfterReadSlots] chapters
+     * before the current one).
+     *
+     * Upstream only considered the single chapter exactly [removeAfterReadSlots] slots
+     * behind the current one and required it to be read; a chapter that was skipped
+     * (sync restore, reading on another device, reading while the option was off)
+     * blocked its slot forever, so deletion silently stalled. Sweeping everything
+     * read behind the window instead lets deletion catch up regardless of jumps.
+     *
+     * The chapter list is re-queried at sweep time instead of reusing a session
+     * snapshot: chapters completed after a snapshot was taken still had `read = false`
+     * in it, so the sweep skipped them until the next reader session (most visible
+     * with long sessions over a downloaded-only chapter list).
+     *
      * @param currentChapter current chapter, which is going to be marked as read.
      */
     private fun deleteChapterIfNeeded(currentChapter: ReaderChapter) {
         val removeAfterReadSlots = downloadPreferences.removeAfterReadSlots.get()
         if (removeAfterReadSlots == -1) return
 
-        // Determine which chapter should be deleted and enqueue
-        val currentChapterPosition = fullChapterList.indexOfFirst { it.id == currentChapter.chapter.id }
-        val chapterToDelete = fullChapterList.getOrNull(currentChapterPosition - removeAfterReadSlots)
+        val manga = manga ?: return
+        val currentChapterId = currentChapter.chapter.id
+        viewModelScope.launchNonCancellable {
+            val chapters = getChaptersByMangaId.await(manga.id, applyScanlatorFilter = true)
+                .sortedWith(getChapterSort(manga, sortDescending = false))
+            val currentChapterPosition = chapters.indexOfFirst { it.id == currentChapterId }
+            if (currentChapterPosition < 0) return@launchNonCancellable
 
-        // If chapter is completely read, no need to download it
-        chapterToDownload = null
+            // Chapters at or before this position are outside the keep window. With
+            // slots = 0 the just-completed chapter is the last read chapter and is
+            // included explicitly, since its read flag may not be persisted yet.
+            val cutoff = currentChapterPosition - removeAfterReadSlots
+            if (cutoff < 0) return@launchNonCancellable
 
-        if (chapterToDelete != null) {
-            enqueueDeleteReadChapters(chapterToDelete)
+            val chaptersToDelete = chapters
+                .take(cutoff + 1)
+                .filter { it.read || it.id == currentChapterId }
+            if (chaptersToDelete.isEmpty()) return@launchNonCancellable
+
+            // If a chapter is completely read, no need to download it
+            chapterToDownload = null
+
+            downloadManager.enqueueChaptersToDelete(chaptersToDelete, manga)
+            // Flush right away instead of waiting for the reader to close: with the
+            // pending queue only flushed on activity finish, deletions appeared to
+            // stop during long reading sessions.
+            downloadManager.deletePendingChapters()
         }
     }
 
@@ -1691,19 +1716,6 @@ class ReaderViewModel @JvmOverloads constructor(
             } catch (e: Exception) {
                 logcat(LogPriority.WARN, e) { "Reader SourceTrackerDispatcher dispatch failed" }
             }
-        }
-    }
-
-    /**
-     * Enqueues this [chapter] to be deleted when [deletePendingChapters] is called. The download
-     * manager handles persisting it across process deaths.
-     */
-    private fun enqueueDeleteReadChapters(chapter: DomainChapter) {
-        if (!chapter.read) return
-        val manga = manga ?: return
-
-        viewModelScope.launchNonCancellable {
-            downloadManager.enqueueChaptersToDelete(listOf(chapter), manga)
         }
     }
 

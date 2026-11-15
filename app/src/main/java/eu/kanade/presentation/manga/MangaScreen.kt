@@ -147,6 +147,7 @@ fun MangaScreen(
     // Chapter selection
     onChapterSelected: (ChapterList.Item, Boolean, Boolean) -> Unit,
     onAllChapterSelected: (Boolean) -> Unit,
+    onSelectBetween: () -> Unit,
     onInvertSelection: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -206,6 +207,7 @@ fun MangaScreen(
             onChapterSwipe = onChapterSwipe,
             onChapterSelected = onChapterSelected,
             onAllChapterSelected = onAllChapterSelected,
+            onSelectBetween = onSelectBetween,
             onInvertSelection = onInvertSelection,
         )
     } else {
@@ -258,6 +260,7 @@ fun MangaScreen(
             onChapterSwipe = onChapterSwipe,
             onChapterSelected = onChapterSelected,
             onAllChapterSelected = onAllChapterSelected,
+            onSelectBetween = onSelectBetween,
             onInvertSelection = onInvertSelection,
         )
     }
@@ -326,6 +329,7 @@ private fun MangaScreenSmallImpl(
     // Chapter selection
     onChapterSelected: (ChapterList.Item, Boolean, Boolean) -> Unit,
     onAllChapterSelected: (Boolean) -> Unit,
+    onSelectBetween: () -> Unit,
     onInvertSelection: () -> Unit,
 ) {
     val (chapters, listItem, isAnySelected) = remember(state) {
@@ -405,6 +409,7 @@ private fun MangaScreenSmallImpl(
                 actionModeCounter = selectedChapterCount,
                 onCancelActionMode = { onAllChapterSelected(false) },
                 onSelectAll = { onAllChapterSelected(true) },
+                onSelectBetween = onSelectBetween,
                 onInvertSelection = { onInvertSelection() },
                 titleAlphaProvider = { titleAlpha },
                 backgroundAlphaProvider = { backgroundAlpha },
@@ -634,6 +639,7 @@ fun MangaScreenLargeImpl(
     // Chapter selection
     onChapterSelected: (ChapterList.Item, Boolean, Boolean) -> Unit,
     onAllChapterSelected: (Boolean) -> Unit,
+    onSelectBetween: () -> Unit,
     onInvertSelection: () -> Unit,
 ) {
     val layoutDirection = LocalLayoutDirection.current
@@ -706,6 +712,7 @@ fun MangaScreenLargeImpl(
                 onCancelActionMode = { onAllChapterSelected(false) },
                 actionModeCounter = selectedChapterCount,
                 onSelectAll = { onAllChapterSelected(true) },
+                onSelectBetween = onSelectBetween,
                 onInvertSelection = { onInvertSelection() },
                 titleAlphaProvider = { 1f },
                 backgroundAlphaProvider = { 1f },

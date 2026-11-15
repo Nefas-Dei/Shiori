@@ -290,6 +290,7 @@ dependencies {
 
     // HTML parser
     implementation(libs.jsoup)
+    implementation(libs.journeyapps.zxing.embedded)
 
     // JavaScript engine (for JS plugins)
     // implementation(libs.bundles.js.engine)

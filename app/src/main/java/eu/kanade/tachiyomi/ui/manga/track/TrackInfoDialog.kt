@@ -42,6 +42,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.icerock.moko.resources.StringResource
 import eu.kanade.domain.track.interactor.RefreshTracks
 import eu.kanade.domain.track.model.toDbTrack
+import eu.kanade.domain.track.model.toDomainTrack
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.track.TrackChapterSelector
 import eu.kanade.presentation.track.TrackDateSelector
@@ -54,6 +55,7 @@ import eu.kanade.tachiyomi.data.track.DeletableTracker
 import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.Tracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
+import eu.kanade.tachiyomi.data.track.custom.CustomTracker
 import eu.kanade.tachiyomi.data.track.model.TrackSearch
 import eu.kanade.tachiyomi.source.isNovelSource
 import eu.kanade.tachiyomi.util.lang.convertEpochMillisZone
@@ -75,12 +77,15 @@ import tachiyomi.core.common.util.lang.launchNonCancellable
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.domain.chapter.interactor.GetChaptersByMangaId
 import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.track.interactor.DeleteTrack
 import tachiyomi.domain.track.interactor.GetTracks
+import tachiyomi.domain.track.interactor.InsertTrack
 import tachiyomi.domain.track.model.Track
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.novel.TDMR
 import tachiyomi.presentation.core.components.LabeledCheckbox
 import tachiyomi.presentation.core.components.material.AlertDialogContent
 import tachiyomi.presentation.core.components.material.padding
@@ -183,6 +188,10 @@ data class TrackInfoDialogHomeScreen(
             },
             onCopyLink = { context.copyTrackerLink(it) },
             onTogglePrivate = viewModel::togglePrivate,
+            onSyncNow = viewModel::syncNow,
+            onContinueInBrowser = {
+                viewModel.continueInBrowser(it) { url -> context.openInBrowser(url) }
+            },
         )
     }
 
@@ -275,6 +284,79 @@ data class TrackInfoDialogHomeScreen(
         fun togglePrivate(item: TrackItem) {
             viewModelScope.launchNonCancellable {
                 item.tracker.setRemotePrivate(item.track!!.toDbTrack(), !item.track.private)
+            }
+        }
+
+        /**
+         * Pushes the phone's current reading position for this manga to Shiori Sync.
+         * This is an explicit user action, so it always sends the local position — even
+         * when the server is ahead — and last-write-wins makes this device win. Only
+         * bails when there is nothing local to send.
+         */
+        fun syncNow(item: TrackItem) {
+            val track = item.track ?: return
+            val tracker = item.tracker as? CustomTracker ?: return
+            viewModelScope.launchNonCancellable {
+                val context = Injekt.get<Application>()
+                try {
+                    val manga = Injekt.get<GetManga>().await(mangaId) ?: return@launchNonCancellable
+                    val chapters = Injekt.get<GetChaptersByMangaId>().await(manga.id)
+                    val furthestRead = chapters.filter { it.read }.maxOfOrNull { it.chapterNumber } ?: 0.0
+                    val inProgress = chapters
+                        .filter { !it.read && it.lastPageRead > 0 }
+                        .maxByOrNull { it.chapterNumber }
+                    val chapterNumber = maxOf(furthestRead, inProgress?.chapterNumber ?: 0.0)
+
+                    if (chapterNumber <= 0.0) {
+                        withUIContext { context.toast(TDMR.strings.track_shiori_nothing_to_sync) }
+                        return@launchNonCancellable
+                    }
+
+                    val isNovel = Injekt.get<SourceManager>().getOrStub(sourceId).isNovelSource()
+                    val percent = when {
+                        !isNovel -> null
+                        inProgress != null && inProgress.chapterNumber == chapterNumber ->
+                            inProgress.lastPageRead.toDouble().coerceIn(0.0, 100.0)
+                        else -> 100.0
+                    }
+
+                    val dbTrack = track.toDbTrack().apply {
+                        last_chapter_read = chapterNumber
+                        percent?.let { progress_percent = it }
+                    }
+                    val updated = tracker.update(dbTrack, didReadChapter = chapterNumber <= furthestRead)
+                    Injekt.get<InsertTrack>().await(updated.toDomainTrack(idRequired = true)!!)
+                    withUIContext { context.toast(TDMR.strings.track_shiori_position_sent) }
+                } catch (e: Exception) {
+                    logcat(LogPriority.WARN, e) { "Shiori Sync manual push failed" }
+                    withUIContext { context.toast(e.message) }
+                }
+            }
+        }
+
+        /**
+         * Opens the position the extension last synced. Prefers the exact chapter URL; falls
+         * back to the series URL, then the locally known tracking URL.
+         */
+        fun continueInBrowser(item: TrackItem, onReady: (String) -> Unit) {
+            val track = item.track ?: return
+            val tracker = item.tracker as? CustomTracker ?: return
+            viewModelScope.launchNonCancellable {
+                val context = Injekt.get<Application>()
+                try {
+                    val entry = tracker.fetchRemoteEntry(track.toDbTrack())
+                    val url = entry?.chapterUrl?.takeIf { it.isNotBlank() }
+                        ?: entry?.seriesUrl?.takeIf { it.isNotBlank() }
+                        ?: track.remoteUrl.takeIf { it.isNotBlank() }
+                    if (url == null) {
+                        withUIContext { context.toast(TDMR.strings.track_shiori_no_entry) }
+                    } else {
+                        withUIContext { onReady(url) }
+                    }
+                } catch (e: Exception) {
+                    logcat(LogPriority.WARN, e) { "Shiori Sync continue-in-browser failed" }
+                    withUIContext { context.toast(TDMR.strings.track_shiori_no_entry) }
+                }
             }
         }
 

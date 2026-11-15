@@ -35,6 +35,14 @@ import java.security.MessageDigest
 import kotlin.math.max
 import tachiyomi.domain.track.model.Track as DomainTrack
 
+/** Latest server-side position for a tracked title. */
+data class ShioriRemoteEntry(
+    val chapter: Double,
+    val chapterTitle: String?,
+    val chapterUrl: String?,
+    val seriesUrl: String?,
+)
+
 /**
  * Custom tracker backed by the self-hosted Shiori sync server.
  *
@@ -156,6 +164,26 @@ class CustomTracker(id: Long) : BaseTracker(id, "Shiori Sync"), DeletableTracker
         ) ?: return track
         applyEntry(track, entry)
         return track
+    }
+
+    /**
+     * Returns the server-side position for this track without mutating local state, so the UI
+     * can offer "Continue in browser" with the exact chapter the extension last synced.
+     */
+    suspend fun fetchRemoteEntry(track: Track): ShioriRemoteEntry? {
+        if (!isLoggedIn) return null
+        val entry = findEntry(
+            site = track.progress_site,
+            seriesKey = track.progress_series_key,
+            title = track.title,
+            seriesUrl = track.tracking_url,
+        ) ?: return null
+        return ShioriRemoteEntry(
+            chapter = entry.number("chapter") ?: 0.0,
+            chapterTitle = entry.string("chapter_title"),
+            chapterUrl = entry.string("chapter_url"),
+            seriesUrl = entry.string("series_url"),
+        )
     }
 
     override suspend fun delete(track: DomainTrack) {

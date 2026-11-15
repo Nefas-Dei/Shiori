@@ -55,12 +55,14 @@ import eu.kanade.presentation.components.DropdownMenu
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import eu.kanade.presentation.track.components.TrackLogoIcon
 import eu.kanade.tachiyomi.data.track.Tracker
+import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.ui.manga.track.TrackItem
 import eu.kanade.tachiyomi.util.lang.toJavaLocalDate
 import eu.kanade.tachiyomi.util.lang.toLocalDate
 import eu.kanade.tachiyomi.util.system.copyToClipboard
 import kotlinx.datetime.toJavaLocalDate
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.novel.TDMR
 import tachiyomi.presentation.core.i18n.stringResource
 import java.time.format.DateTimeFormatter
 
@@ -78,6 +80,8 @@ fun TrackInfoDialogHome(
     onRemoved: (TrackItem) -> Unit,
     onCopyLink: (TrackItem) -> Unit,
     onTogglePrivate: (TrackItem) -> Unit,
+    onSyncNow: (TrackItem) -> Unit,
+    onContinueInBrowser: (TrackItem) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -129,6 +133,10 @@ fun TrackInfoDialogHome(
                     private = item.track.private,
                     onTogglePrivate = { onTogglePrivate(item) }
                         .takeIf { supportsPrivate },
+                    onSyncNow = { onSyncNow(item) }
+                        .takeIf { item.tracker.id == TrackerManager.CUSTOM },
+                    onContinueInBrowser = { onContinueInBrowser(item) }
+                        .takeIf { item.tracker.id == TrackerManager.CUSTOM },
                 )
             } else {
                 TrackInfoItemEmpty(
@@ -160,6 +168,8 @@ private fun TrackInfoItem(
     onCopyLink: () -> Unit,
     private: Boolean,
     onTogglePrivate: (() -> Unit)?,
+    onSyncNow: (() -> Unit)?,
+    onContinueInBrowser: (() -> Unit)?,
 ) {
     val context = LocalContext.current
     Column {
@@ -217,6 +227,8 @@ private fun TrackInfoItem(
                 onCopyLink = onCopyLink,
                 private = private,
                 onTogglePrivate = onTogglePrivate,
+                onSyncNow = onSyncNow,
+                onContinueInBrowser = onContinueInBrowser,
             )
         }
 
@@ -329,6 +341,8 @@ private fun TrackInfoItemMenu(
     onCopyLink: () -> Unit,
     private: Boolean,
     onTogglePrivate: (() -> Unit)?,
+    onSyncNow: (() -> Unit)?,
+    onContinueInBrowser: (() -> Unit)?,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
@@ -342,6 +356,24 @@ private fun TrackInfoItemMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
+            if (onSyncNow != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(TDMR.strings.action_sync_now)) },
+                    onClick = {
+                        onSyncNow()
+                        expanded = false
+                    },
+                )
+            }
+            if (onContinueInBrowser != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(TDMR.strings.action_continue_in_browser)) },
+                    onClick = {
+                        onContinueInBrowser()
+                        expanded = false
+                    },
+                )
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(MR.strings.action_open_in_browser)) },
                 onClick = {

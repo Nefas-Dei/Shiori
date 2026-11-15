@@ -74,6 +74,7 @@ tapmoc = "0.4.2"
 unifile = "08f224c8f9"
 voyager = "2.2.21-1.10.3"
 xmlutil = "1.0.1"
+zxingEmbedded = "4.3.0"
 
 [libraries]
 aboutLibraries-compose = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
@@ -138,6 +139,7 @@ flexibleAdapter = { module = "eu.davidea:flexible-adapter", version.ref = "flexi
 image-decoder = { module = "com.github.mihonapp:image-decoder", version.ref = "image-decoder" }
 injekt = { module = "com.github.mihonapp:injekt", version.ref = "injekt" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+journeyapps-zxing-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxingEmbedded" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest-assertions" }

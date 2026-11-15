@@ -51,6 +51,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import dev.icerock.moko.resources.StringResource
 import eu.kanade.domain.track.model.AutoTrackState
 import eu.kanade.domain.track.service.TrackPreferences
@@ -64,6 +67,7 @@ import eu.kanade.tachiyomi.data.track.hikka.HikkaApi
 import eu.kanade.tachiyomi.data.track.mangabaka.MangaBakaApi
 import eu.kanade.tachiyomi.data.track.myanimelist.MyAnimeListApi
 import eu.kanade.tachiyomi.data.track.shikimori.ShikimoriApi
+import eu.kanade.tachiyomi.ui.pairing.ShioriPairing
 import eu.kanade.tachiyomi.ui.webview.TrackerWebViewLoginActivity
 import eu.kanade.tachiyomi.util.system.openInBrowser
 import eu.kanade.tachiyomi.util.system.toast
@@ -243,7 +247,8 @@ object SettingsTrackingScreen : SearchableSettings {
                         logout = { dialog = LogoutDialog(trackerManager.custom) },
                     ),
                     Preference.PreferenceItem.InfoPreference(
-                        "Shiori Sync pairs this app with the Shiori browser extension for exact reading-position sync. " +
+                        "Shiori Sync pairs this app with the Shiori browser extension and syncs your exact " +
+                            "reading position both ways. " +
                             "Server URL: the base URL of your sync server (e.g. https://shiori.example.workers.dev). " +
                             "Sync token: the same token configured in the browser extension.",
                     ),
@@ -379,6 +384,31 @@ object SettingsTrackingScreen : SearchableSettings {
         var processing by remember { mutableStateOf(false) }
         var inputError by remember { mutableStateOf(false) }
 
+        // The Shiori Sync (custom) tracker can be filled from the pairing QR code
+        // shown by the browser extension instead of typing URL + token by hand.
+        val isCustomTracker = tracker.id == TrackerManager.CUSTOM
+        val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+            val credentials = ShioriPairing.parse(result.contents)
+            if (credentials == null) {
+                context.toast("Not a Shiori pairing code")
+                return@rememberLauncherForActivityResult
+            }
+            username = TextFieldValue(credentials.baseUrl)
+            password = TextFieldValue(credentials.token)
+            scope.launchIO {
+                processing = true
+                val ok = checkLogin(
+                    context = context,
+                    tracker = tracker,
+                    username = credentials.baseUrl,
+                    password = credentials.token,
+                )
+                inputError = !ok
+                if (ok) onDismissRequest()
+                processing = false
+            }
+        }
+
         AlertDialog(
             onDismissRequest = onDismissRequest,
             title = {
@@ -441,6 +471,25 @@ object SettingsTrackingScreen : SearchableSettings {
                         singleLine = true,
                         isError = inputError && !processing,
                     )
+
+                    if (isCustomTracker) {
+                        OutlinedButton(
+                            onClick = {
+                                scanLauncher.launch(
+                                    ScanOptions().apply {
+                                        setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                                        setPrompt("Scan the pairing code shown by the browser extension")
+                                        setBeepEnabled(false)
+                                        setOrientationLocked(false)
+                                    },
+                                )
+                            },
+                            enabled = !processing,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(text = "Scan QR code")
+                        }
+                    }
                 }
             },
             confirmButton = {
