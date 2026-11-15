@@ -51,6 +51,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import dev.icerock.moko.resources.StringResource
 import eu.kanade.domain.track.model.AutoTrackState
 import eu.kanade.domain.track.service.TrackPreferences
@@ -64,6 +67,7 @@ import eu.kanade.tachiyomi.data.track.hikka.HikkaApi
 import eu.kanade.tachiyomi.data.track.mangabaka.MangaBakaApi
 import eu.kanade.tachiyomi.data.track.myanimelist.MyAnimeListApi
 import eu.kanade.tachiyomi.data.track.shikimori.ShikimoriApi
+import eu.kanade.tachiyomi.ui.pairing.ShioriPairing
 import eu.kanade.tachiyomi.ui.webview.TrackerWebViewLoginActivity
 import eu.kanade.tachiyomi.util.system.openInBrowser
 import eu.kanade.tachiyomi.util.system.toast
@@ -107,6 +111,8 @@ object SettingsTrackingScreen : SearchableSettings {
                     TrackingLoginDialog(
                         tracker = tracker,
                         uNameStringRes = uNameStringRes,
+                        usernameLabel = usernameLabel,
+                        passwordLabel = passwordLabel,
                         onDismissRequest = { dialog = null },
                     )
                 }
@@ -229,6 +235,24 @@ object SettingsTrackingScreen : SearchableSettings {
                 title = "Novel Trackers",
                 preferenceItems = listOf(
                     Preference.PreferenceItem.TrackerPreference(
+                        tracker = trackerManager.custom,
+                        login = {
+                            dialog = LoginDialog(
+                                tracker = trackerManager.custom,
+                                uNameStringRes = MR.strings.username,
+                                usernameLabel = "Server URL",
+                                passwordLabel = "Sync token",
+                            )
+                        },
+                        logout = { dialog = LogoutDialog(trackerManager.custom) },
+                    ),
+                    Preference.PreferenceItem.InfoPreference(
+                        "Shiori Sync pairs this app with the Shiori browser extension and syncs your exact " +
+                            "reading position both ways. " +
+                            "Server URL: the base URL of your sync server (e.g. https://shiori.example.workers.dev). " +
+                            "Sync token: the same token configured in the browser extension.",
+                    ),
+                    Preference.PreferenceItem.TrackerPreference(
                         tracker = trackerManager.novelUpdates,
                         login = {
                             // Use WebView-based login for NovelUpdates
@@ -348,6 +372,8 @@ object SettingsTrackingScreen : SearchableSettings {
     private fun TrackingLoginDialog(
         tracker: Tracker,
         uNameStringRes: StringResource,
+        usernameLabel: String? = null,
+        passwordLabel: String? = null,
         onDismissRequest: () -> Unit,
     ) {
         val context = LocalContext.current
@@ -357,6 +383,31 @@ object SettingsTrackingScreen : SearchableSettings {
         var password by remember { mutableStateOf(TextFieldValue(tracker.getPassword())) }
         var processing by remember { mutableStateOf(false) }
         var inputError by remember { mutableStateOf(false) }
+
+        // The Shiori Sync (custom) tracker can be filled from the pairing QR code
+        // shown by the browser extension instead of typing URL + token by hand.
+        val isCustomTracker = tracker.id == TrackerManager.CUSTOM
+        val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+            val credentials = ShioriPairing.parse(result.contents)
+            if (credentials == null) {
+                context.toast("Not a Shiori pairing code")
+                return@rememberLauncherForActivityResult
+            }
+            username = TextFieldValue(credentials.baseUrl)
+            password = TextFieldValue(credentials.token)
+            scope.launchIO {
+                processing = true
+                val ok = checkLogin(
+                    context = context,
+                    tracker = tracker,
+                    username = credentials.baseUrl,
+                    password = credentials.token,
+                )
+                inputError = !ok
+                if (ok) onDismissRequest()
+                processing = false
+            }
+        }
 
         AlertDialog(
             onDismissRequest = onDismissRequest,
@@ -382,7 +433,7 @@ object SettingsTrackingScreen : SearchableSettings {
                             .semantics { contentType = ContentType.Username + ContentType.EmailAddress },
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text(text = stringResource(uNameStringRes)) },
+                        label = { Text(text = usernameLabel ?: stringResource(uNameStringRes)) },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         singleLine = true,
                         isError = inputError && !processing,
@@ -395,7 +446,7 @@ object SettingsTrackingScreen : SearchableSettings {
                             .semantics { contentType = ContentType.Password },
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text(text = stringResource(MR.strings.password)) },
+                        label = { Text(text = passwordLabel ?: stringResource(MR.strings.password)) },
                         trailingIcon = {
                             IconButton(onClick = { hidePassword = !hidePassword }) {
                                 Icon(
@@ -420,6 +471,25 @@ object SettingsTrackingScreen : SearchableSettings {
                         singleLine = true,
                         isError = inputError && !processing,
                     )
+
+                    if (isCustomTracker) {
+                        OutlinedButton(
+                            onClick = {
+                                scanLauncher.launch(
+                                    ScanOptions().apply {
+                                        setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                                        setPrompt("Scan the pairing code shown by the browser extension")
+                                        setBeepEnabled(false)
+                                        setOrientationLocked(false)
+                                    },
+                                )
+                            },
+                            enabled = !processing,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(text = "Scan QR code")
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -814,6 +884,8 @@ object SettingsTrackingScreen : SearchableSettings {
 private data class LoginDialog(
     val tracker: Tracker,
     val uNameStringRes: StringResource,
+    val usernameLabel: String? = null,
+    val passwordLabel: String? = null,
 )
 
 private data class LogoutDialog(

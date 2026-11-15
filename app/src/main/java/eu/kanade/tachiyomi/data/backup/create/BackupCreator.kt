@@ -80,11 +80,18 @@ class BackupCreator(
                 // Get dir of file and create
                 val dir = UniFile.fromUri(context, uri)
 
-                // Delete older backups
+                // Delete older backups: keep at most MAX_AUTO_BACKUPS files, and (when a
+                // retention window is set) drop every backup older than N days.
+                val retentionCutoff = backupPreferences.backupRetentionDays.get()
+                    .takeIf { it > 0 }
+                    ?.let { System.currentTimeMillis() - it.toLong() * 86_400_000L }
                 dir?.listFiles { _, filename -> FILENAME_REGEX.matches(filename) }
                     .orEmpty()
                     .sortedByDescending { it.name }
-                    .drop(MAX_AUTO_BACKUPS - 1)
+                    .filterIndexed { index, candidate ->
+                        index >= MAX_AUTO_BACKUPS - 1 ||
+                            (retentionCutoff != null && candidate.lastModified() < retentionCutoff)
+                    }
                     .forEach { it.delete() }
 
                 // Create new file to place backup

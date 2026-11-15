@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Splash screen icon. Uses the full-bleed logo (glyph fills ~94% of the drawable,
+  unlike ic_mihon which keeps launcher safe-zone margins) and a larger item so the
+  mark reads clearly in the Android 12+ splash icon area.
+-->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:width="72dp"
-        android:height="72dp"
-        android:drawable="@drawable/ic_mihon"
+        android:width="100dp"
+        android:height="100dp"
+        android:drawable="@drawable/ic_logo"
         android:gravity="center" />
 </layer-list>

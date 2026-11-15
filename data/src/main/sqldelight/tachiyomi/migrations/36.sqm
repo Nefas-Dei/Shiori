@@ -1,0 +1,6 @@
+-- Exact novel progress for the Shiori sync server tracker.
+ALTER TABLE manga_sync ADD COLUMN progress_site TEXT NOT NULL DEFAULT '';
+ALTER TABLE manga_sync ADD COLUMN progress_series_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE manga_sync ADD COLUMN progress_percent REAL NOT NULL DEFAULT 0;
+ALTER TABLE manga_sync ADD COLUMN progress_paragraph INTEGER NOT NULL DEFAULT -1;
+ALTER TABLE manga_sync ADD COLUMN progress_updated_at INTEGER NOT NULL DEFAULT 0;

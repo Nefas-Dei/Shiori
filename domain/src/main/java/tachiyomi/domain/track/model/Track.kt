@@ -17,4 +17,9 @@ data class Track(
     val startDate: Long,
     val finishDate: Long,
     val private: Boolean,
+    val progressSite: String = "",
+    val progressSeriesKey: String = "",
+    val progressPercent: Double = 0.0,
+    val progressParagraph: Long = -1,
+    val progressUpdatedAt: Long = 0,
 ) : Serializable

@@ -27,6 +27,12 @@ data class BackupTracking(
     @ProtoNumber(11) var finishedReadingDate: Long = 0,
     @ProtoNumber(12) var private: Boolean = false,
     @ProtoNumber(100) var mediaId: Long = 0,
+    // Shiori Sync exact progress binding (not known by 1.x).
+    @ProtoNumber(101) var progressSite: String = "",
+    @ProtoNumber(102) var progressSeriesKey: String = "",
+    @ProtoNumber(103) var progressPercent: Double = 0.0,
+    @ProtoNumber(104) var progressParagraph: Long = -1,
+    @ProtoNumber(105) var progressUpdatedAt: Long = 0,
 ) {
 
     @Suppress("DEPRECATION")
@@ -50,6 +56,11 @@ data class BackupTracking(
             finishDate = this@BackupTracking.finishedReadingDate,
             remoteUrl = this@BackupTracking.trackingUrl,
             private = this@BackupTracking.private,
+            progressSite = this@BackupTracking.progressSite,
+            progressSeriesKey = this@BackupTracking.progressSeriesKey,
+            progressPercent = this@BackupTracking.progressPercent,
+            progressParagraph = this@BackupTracking.progressParagraph,
+            progressUpdatedAt = this@BackupTracking.progressUpdatedAt,
         )
     }
 }
@@ -69,6 +80,11 @@ val backupTrackMapper = {
         startDate: Long,
         finishDate: Long,
         private: Boolean,
+        progressSite: String,
+        progressSeriesKey: String,
+        progressPercent: Double,
+        progressParagraph: Long,
+        progressUpdatedAt: Long,
     ->
     BackupTracking(
         syncId = syncId.toInt(),
@@ -84,5 +100,10 @@ val backupTrackMapper = {
         finishedReadingDate = finishDate,
         trackingUrl = remoteUrl,
         private = private,
+        progressSite = progressSite,
+        progressSeriesKey = progressSeriesKey,
+        progressPercent = progressPercent,
+        progressParagraph = progressParagraph,
+        progressUpdatedAt = progressUpdatedAt,
     )
 }

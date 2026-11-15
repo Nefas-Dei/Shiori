@@ -447,6 +447,12 @@ class MangaRestorer(
                     track.startDate,
                     track.finishDate,
                     track.private,
+                    // Restore backups keep the current on-device progress binding.
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     track.id,
                 )
             }

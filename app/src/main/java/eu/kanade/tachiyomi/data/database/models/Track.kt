@@ -34,6 +34,15 @@ interface Track : Serializable {
 
     var private: Boolean
 
+    // Exact reading progress for trackers backed by a Shiori sync server.
+    // `progress_site` + `progress_series_key` identify the server entry; the rest
+    // mirrors the server's scroll position data.
+    var progress_site: String
+    var progress_series_key: String
+    var progress_percent: Double
+    var progress_paragraph: Long
+    var progress_updated_at: Long
+
     fun copyPersonalFrom(other: Track, copyRemotePrivate: Boolean = true) {
         last_chapter_read = other.last_chapter_read
         score = other.score

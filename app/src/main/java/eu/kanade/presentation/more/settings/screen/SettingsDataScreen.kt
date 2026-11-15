@@ -365,6 +365,17 @@ object SettingsDataScreen : SearchableSettings {
                         true
                     },
                 ),
+                Preference.PreferenceItem.ListPreference(
+                    preference = backupPreferences.backupRetentionDays,
+                    entries = mapOf(
+                        0 to stringResource(MR.strings.off),
+                        7 to stringResource(MR.strings.backup_retention_7_days),
+                        14 to stringResource(MR.strings.backup_retention_14_days),
+                        30 to stringResource(MR.strings.backup_retention_30_days),
+                        90 to stringResource(MR.strings.backup_retention_90_days),
+                    ),
+                    title = stringResource(MR.strings.pref_backup_retention),
+                ),
                 Preference.PreferenceItem.InfoPreference(
                     stringResource(MR.strings.backup_info) + "\n\n" +
                         stringResource(MR.strings.last_auto_backup_info, relativeTimeSpanString(lastAutoBackup)),

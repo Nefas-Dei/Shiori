@@ -67,6 +67,7 @@ internal class TrackInfoDialogHomePreviewProvider :
             onRemoved = {},
             onCopyLink = {},
             onTogglePrivate = {},
+            onSyncNow = {},
         )
     }
 
@@ -84,6 +85,7 @@ internal class TrackInfoDialogHomePreviewProvider :
             onRemoved = {},
             onCopyLink = {},
             onTogglePrivate = {},
+            onSyncNow = {},
         )
     }
 
@@ -101,6 +103,7 @@ internal class TrackInfoDialogHomePreviewProvider :
             onRemoved = {},
             onCopyLink = {},
             onTogglePrivate = {},
+            onSyncNow = {},
         )
     }
 

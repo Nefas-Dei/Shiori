@@ -66,6 +66,11 @@ class TrackRepositoryImpl(
                     startDate = mangaTrack.startDate,
                     finishDate = mangaTrack.finishDate,
                     private = mangaTrack.private,
+                    progressSite = mangaTrack.progressSite,
+                    progressSeriesKey = mangaTrack.progressSeriesKey,
+                    progressPercent = mangaTrack.progressPercent,
+                    progressParagraph = mangaTrack.progressParagraph,
+                    progressUpdatedAt = mangaTrack.progressUpdatedAt,
                 )
             }
         }

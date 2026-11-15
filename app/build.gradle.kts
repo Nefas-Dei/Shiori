@@ -30,7 +30,7 @@ android {
     namespace = "eu.kanade.tachiyomi"
 
     defaultConfig {
-        applicationId = "app.tsundoku"
+        applicationId = "app.shiori"
 
         versionCode = 24
         versionName = "0.3.4"
@@ -290,6 +290,7 @@ dependencies {
 
     // HTML parser
     implementation(libs.jsoup)
+    implementation(libs.journeyapps.zxing.embedded)
 
     // JavaScript engine (for JS plugins)
     // implementation(libs.bundles.js.engine)

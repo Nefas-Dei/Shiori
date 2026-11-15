@@ -1,28 +1,29 @@
+# Shiori - Forked from Tsundoku, owned by nefas dei
+
 <div align="center">
 
-<a href="https://tsundoku-otaku.github.io">
-    <img src="./.github/assets/logo.png" alt="Tsundoku logo" title="Tsundoku logo" width="80"/>
+<a href="https://github.com/Nefas-Dei/Shiori">
+    <img src="./.github/assets/logo.png" alt="Shiori logo" title="Shiori logo" width="80"/>
 </a>
 
-# Tsundoku [App](#)
+# Shiori [App](#)
 
 ### Full-featured reader
 Discover and read novels and more – easier than ever on your Android device.
 
 [![Discord server](https://img.shields.io/discord/1475219284551536653.svg?label=&labelColor=6A7EC2&color=7389D8&logo=discord&logoColor=FFFFFF)](https://discord.gg/RycBkEgrPE)
-[![GitHub downloads](https://img.shields.io/github/downloads/tsundoku-otaku/tsundoku/total?label=downloads&labelColor=27303D&color=0D1117&logo=github&logoColor=FFFFFF&style=flat)](https://tsundoku-otaku.github.io/download)
+[![GitHub downloads](https://img.shields.io/github/downloads/Nefas-Dei/Shiori/total?label=downloads&labelColor=27303D&color=0D1117&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/Nefas-Dei/Shiori/releases)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/tsundoku-otaku/tsundoku/build.yml?labelColor=27303D)](https://github.com/tsundoku-otaku/tsundoku/actions/workflows/build_push.yml)
-[![License: Apache-2.0](https://img.shields.io/github/license/tsundoku-otaku/tsundoku?labelColor=27303D&color=0877d2)](/LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/Nefas-Dei/Shiori/build.yml?labelColor=27303D)](https://github.com/Nefas-Dei/Shiori/actions/workflows/build_push.yml)
+[![License: Apache-2.0](https://img.shields.io/github/license/Nefas-Dei/Shiori?labelColor=27303D&color=0877d2)](/LICENSE)
 [![Translation status](https://img.shields.io/weblate/progress/tsundoku?labelColor=27303D&color=946300)](https://hosted.weblate.org/engage/tsundoku/)
 
-Upstream Weblate:  
+Upstream Weblate:
 [![Translation status](https://img.shields.io/weblate/progress/mihon?labelColor=27303D&color=946300)](https://hosted.weblate.org/engage/mihon/)
 
 ## Download
 
-[![Tsundoku Stable](https://img.shields.io/github/release/tsundoku-otaku/tsundoku.svg?maxAge=3600&label=Stable&labelColor=06599d&color=043b69)](https://tsundoku-otaku.github.io/download)
-[![Tsundoku Beta](https://img.shields.io/github/v/release/tsundoku-otaku/tsundoku-preview.svg?maxAge=3600&label=Beta&labelColor=2c2c47&color=1c1c39)](https://tsundoku-otaku.github.io/download)
+[![Shiori Stable](https://img.shields.io/github/v/release/Nefas-Dei/Shiori.svg?maxAge=3600&label=Stable&labelColor=06599d&color=043b69)](https://github.com/Nefas-Dei/Shiori/releases)
 
 *Requires Android 8.0 or higher.*
 
@@ -53,14 +54,12 @@ Upstream Weblate:
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-Before reporting a new issue, take a look at the [FAQ](https://tsundoku-otaku.github.io/docs/faq/general), the [changelog](https://tsundoku-otaku.github.io/changelogs/) and the already opened [issues](https://github.com/tsundoku-otaku/tsundoku/issues); if you got any questions, join our [Discord server](https://discord.gg/RycBkEgrPE).
+Before reporting a new issue, take a look at the already opened [issues](https://github.com/Nefas-Dei/Shiori/issues); if you got any questions, join the [Discord server](https://discord.gg/RycBkEgrPE).
 
-
-### Repositories
-
-[![tsundoku-otaku/website - GitHub](https://github-readme-stats.vercel.app/api/pin/?username=tsundoku-otaku&repo=website&bg_color=161B22&text_color=c9d1d9&title_color=0877d2&icon_color=0877d2&border_radius=8&hide_border=true&description_lines_count=2)](https://github.com/tsundoku-otaku/website/)
 
 ### Credits
+
+Forked from [Tsundoku](https://github.com/tsundoku-otaku/tsundoku), a fork of [Mihon](https://github.com/mihonapp/mihon).
 
 Thank you to all the people who have contributed!
 
@@ -75,6 +74,7 @@ The developer(s) of this application does not have any affiliation with the cont
 ### License
 
 <pre>
+Copyright © 2026 Nefas Dei
 Copyright © 2015 Javier Tomás
 Copyright © 2024 Mihon Open Source Project
 

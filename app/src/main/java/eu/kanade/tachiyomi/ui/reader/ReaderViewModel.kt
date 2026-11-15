@@ -17,6 +17,8 @@ import eu.kanade.domain.manga.model.readingMode
 import eu.kanade.domain.manga.model.toSManga
 import eu.kanade.domain.source.interactor.GetIncognitoState
 import eu.kanade.domain.track.interactor.TrackChapter
+import eu.kanade.domain.track.model.toDbTrack
+import eu.kanade.domain.track.model.toDomainTrack
 import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.presentation.reader.appbars.BottomBarItemState
 import eu.kanade.presentation.reader.appbars.deserializeBottomBarItems
@@ -104,15 +106,19 @@ import tachiyomi.domain.manga.interactor.GetLibraryManga
 import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.source.service.SourceManager
+import tachiyomi.domain.track.interactor.GetTracks
+import tachiyomi.domain.track.interactor.InsertTrack
 import tachiyomi.domain.translation.model.TranslationLocator
 import tachiyomi.domain.translation.service.TranslationPreferences
 import tachiyomi.source.local.isLocal
 import tachiyomi.source.local.isLocalNovel
+import eu.kanade.tachiyomi.data.track.TrackerManager
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.util.Date
 import kotlin.getValue
 import kotlin.time.Clock
+import tachiyomi.domain.track.model.Track as DomainTrack
 import tachiyomi.domain.chapter.model.Chapter as DomainChapter
 
 /**
@@ -129,6 +135,10 @@ class ReaderViewModel @JvmOverloads constructor(
     private val downloadPreferences: DownloadPreferences = Injekt.get(),
     private val trackPreferences: TrackPreferences = Injekt.get(),
     private val trackChapter: TrackChapter = Injekt.get(),
+    private val getTracks: GetTracks = Injekt.get(),
+    private val insertTrack: InsertTrack = Injekt.get(),
+    private val syncChapterProgressWithTrack: eu.kanade.domain.track.interactor.SyncChapterProgressWithTrack = Injekt.get(),
+    private val trackerManager: TrackerManager = Injekt.get(),
     private val sourceTrackerDispatcher: eu.kanade.tachiyomi.data.track.source.SourceTrackerDispatcher = Injekt.get(),
     private val getManga: GetManga = Injekt.get(),
     private val getChaptersByMangaId: GetChaptersByMangaId = Injekt.get(),
@@ -227,8 +237,7 @@ class ReaderViewModel @JvmOverloads constructor(
             ?: error("Requested chapter of id $chapterId not found in chapter list")
 
         val chaptersForReader = when {
-            (readerPreferences.skipRead.get() || readerPreferences.skipFiltered.get()) -> {
-                val filteredChapters = chapters.filterNot {
+            (readerPreferences.skipRead.get() || readerPreferences.skipFiltered.get()) -> {                val filteredChapters = chapters.filterNot {
                     when {
                         readerPreferences.skipRead.get() && it.read -> true
                         readerPreferences.skipFiltered.get() -> {
@@ -287,8 +296,8 @@ class ReaderViewModel @JvmOverloads constructor(
                     this
                 }
             }
-            .map { it.toDbChapter() }
-            .map(::ReaderChapter)
+             .map { it.toDbChapter() }
+             .map(::ReaderChapter)
     }
 
     private val pendingTranslationAheadChapterIds = mutableSetOf<Long>()
@@ -421,6 +430,10 @@ class ReaderViewModel @JvmOverloads constructor(
             e
         }
 
+        if (loadError == null) {
+            applyShioriSyncPosition(chapter)
+        }
+
         val chapterPos = chapterList.indexOf(chapter)
         val newChapters = ViewerChapters(
             chapter,
@@ -448,6 +461,54 @@ class ReaderViewModel @JvmOverloads constructor(
         enqueueTranslationIfNeeded(chapter)
 
         return newChapters
+    }
+
+    private var shioriPulledMangaId = -1L
+    private var shioriPulledTrack: DomainTrack? = null
+
+    /**
+     * Pulls the exact reading position recorded by the Shiori Sync server (e.g.
+     * from the browser extension) into the chapter that is about to be displayed.
+     * Runs once per manga per reader session and only for novel chapters, so a
+     * manga load never waits on the sync server.
+     */
+    private suspend fun applyShioriSyncPosition(chapter: ReaderChapter) {
+        val targetManga = manga ?: return
+        if (incognitoMode || !targetManga.isNovel) return
+        if (chapter.chapter.read) return
+
+        if (shioriPulledMangaId != targetManga.id) {
+            shioriPulledMangaId = targetManga.id
+            shioriPulledTrack = null
+
+            val tracker = trackerManager.custom
+            if (!tracker.isLoggedIn) return
+            val boundTracks = getTracks.await(targetManga.id).filter {
+                it.trackerId == TrackerManager.CUSTOM &&
+                    it.progressSite.isNotBlank() &&
+                    it.progressSeriesKey.isNotBlank()
+            }
+            for (track in boundTracks) {
+                runCatching {
+                    val updated = tracker.refresh(track.toDbTrack()).toDomainTrack(idRequired = true)!!
+                    // Route through the chapter sync so chapters completed on another
+                    // device (e.g. finished in the browser) are marked read here too —
+                    // the same forward-only application the tracker sheet performs.
+                    syncChapterProgressWithTrack.await(targetManga.id, updated, tracker)
+                    if (shioriPulledTrack == null || updated.progressUpdatedAt > shioriPulledTrack!!.progressUpdatedAt) {
+                        shioriPulledTrack = updated
+                    }
+                }.onFailure { logcat(LogPriority.WARN, it) { "Shiori Sync pull failed" } }
+            }
+        }
+
+        val position = shioriPulledTrack ?: return
+        val chapterNumber = chapter.chapter.chapter_number.toDouble()
+        if (kotlin.math.abs(chapterNumber - position.lastChapterRead) > SHIORI_CHAPTER_EPSILON) return
+        val percent = position.progressPercent.toInt()
+        if (percent in 1..100 && percent > chapter.chapter.last_page_read) {
+            chapter.chapter.last_page_read = percent
+        }
     }
 
     /**
@@ -792,14 +853,17 @@ class ReaderViewModel @JvmOverloads constructor(
         if (incognitoMode) return
 
         viewModelScope.launchNonCancellable {
+            val clampedProgress = progressPercentage.coerceIn(0, 100)
+
             // Serialize saves so concurrent calls don't race each other and save
             // old progress values over newer ones (e.g. multiple chapters in flight).
-            novelProgressMutex.withLock {
-                val clampedProgress = progressPercentage.coerceIn(0, 100)
+            // Returns the saved percent, or null when the save was skipped (unchanged or
+            // rejected backward jump) so the sync push only fires for real progress.
+            val savedProgress = novelProgressMutex.withLock {
                 val currentProgress = selectedChapter.chapter.last_page_read
 
                 // Skip save if progress hasn't changed at all
-                if (clampedProgress == currentProgress) return@withLock
+                if (clampedProgress == currentProgress) return@withLock null
 
                 // Reject large backward jumps, including spurious 0% reports that fire during
                 // relayout/recreation (e.g. orientation lock). A 0 used to be exempted here,
@@ -811,7 +875,7 @@ class ReaderViewModel @JvmOverloads constructor(
                     logcat(LogPriority.DEBUG) {
                         "NovelProgress: Skipping save - new progress $clampedProgress% is much less than current $currentProgress%"
                     }
-                    return@withLock
+                    return@withLock null
                 }
 
                 selectedChapter.chapter.last_page_read = clampedProgress
@@ -850,8 +914,57 @@ class ReaderViewModel @JvmOverloads constructor(
                 logcat(LogPriority.DEBUG) {
                     "NovelProgress: Saved $clampedProgress% for ${selectedChapter.chapter.name}"
                 }
+                clampedProgress
             } // end mutex
+
+            if (savedProgress != null) {
+                pushShioriSyncProgress(selectedChapter.chapter, savedProgress)
+            }
         }
+    }
+
+    private var shioriPushedAt = 0L
+    private var shioriPushedChapter = 0.0
+
+    /**
+     * Pushes the exact scroll position (percent + chapter) of the currently read
+     * chapter to the Shiori Sync server so the browser extension restores the
+     * same position. Throttled: a chapter change or completion sends immediately,
+     * plain scrolling sends at most once every [SHIORI_PUSH_COOLDOWN_MS].
+     */
+    private suspend fun pushShioriSyncProgress(chapter: Chapter, percent: Int) {
+        val manga = manga ?: return
+        if (!manga.isNovel) return
+
+        val now = System.currentTimeMillis()
+        val chapterNumber = chapter.chapter_number.toDouble()
+        val chapterChanged = chapterNumber > shioriPushedChapter
+        val cooldownOver = now - shioriPushedAt >= SHIORI_PUSH_COOLDOWN_MS
+        if (!chapterChanged && !cooldownOver) return
+
+        val tracks = getTracks.await(manga.id).filter {
+            it.trackerId == TrackerManager.CUSTOM &&
+                it.progressSite.isNotBlank() &&
+                it.progressSeriesKey.isNotBlank()
+        }
+        val tracker = trackerManager.custom
+        if (tracks.isEmpty() || !tracker.isLoggedIn) return
+        for (track in tracks) {
+            try {
+                val dbTrack = track.toDbTrack().apply {
+                    last_chapter_read = maxOf(last_chapter_read, chapterNumber)
+                    progress_percent = percent.coerceIn(0, 100).toDouble()
+                    progress_updated_at = maxOf(progress_updated_at, now)
+                }
+                val updated = tracker.update(dbTrack, didReadChapter = chapter.read)
+                insertTrack.await(updated.toDomainTrack(idRequired = true)!!)
+            } catch (e: Exception) {
+                logcat(LogPriority.WARN, e) { "Shiori Sync progress push failed" }
+            }
+        }
+
+        shioriPushedAt = now
+        shioriPushedChapter = maxOf(shioriPushedChapter, chapterNumber)
     }
 
     /**
@@ -904,7 +1017,7 @@ class ReaderViewModel @JvmOverloads constructor(
             )
 
             chaptersToDownload.forEach { chapter ->
-                val chapterId = chapter.id ?: return@forEach
+                val chapterId = chapter.id
                 val isAlreadyDownloaded = downloadManager.isChapterDownloaded(
                     chapter.name,
                     chapter.scanlator,
@@ -932,23 +1045,54 @@ class ReaderViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Determines if deleting option is enabled and nth to last chapter actually exists.
-     * If both conditions are satisfied enqueues chapter for delete
+     * Determines if deleting option is enabled and enqueues deletion of every read
+     * chapter that falls outside the keep window (the [removeAfterReadSlots] chapters
+     * before the current one).
+     *
+     * Upstream only considered the single chapter exactly [removeAfterReadSlots] slots
+     * behind the current one and required it to be read; a chapter that was skipped
+     * (sync restore, reading on another device, reading while the option was off)
+     * blocked its slot forever, so deletion silently stalled. Sweeping everything
+     * read behind the window instead lets deletion catch up regardless of jumps.
+     *
+     * The chapter list is re-queried at sweep time instead of reusing a session
+     * snapshot: chapters completed after a snapshot was taken still had `read = false`
+     * in it, so the sweep skipped them until the next reader session (most visible
+     * with long sessions over a downloaded-only chapter list).
+     *
      * @param currentChapter current chapter, which is going to be marked as read.
      */
     private fun deleteChapterIfNeeded(currentChapter: ReaderChapter) {
         val removeAfterReadSlots = downloadPreferences.removeAfterReadSlots.get()
         if (removeAfterReadSlots == -1) return
 
-        // Determine which chapter should be deleted and enqueue
-        val currentChapterPosition = chapterList.indexOf(currentChapter)
-        val chapterToDelete = chapterList.getOrNull(currentChapterPosition - removeAfterReadSlots)
+        val manga = manga ?: return
+        val currentChapterId = currentChapter.chapter.id
+        viewModelScope.launchNonCancellable {
+            val chapters = getChaptersByMangaId.await(manga.id, applyScanlatorFilter = true)
+                .sortedWith(getChapterSort(manga, sortDescending = false))
+            val currentChapterPosition = chapters.indexOfFirst { it.id == currentChapterId }
+            if (currentChapterPosition < 0) return@launchNonCancellable
 
-        // If chapter is completely read, no need to download it
-        chapterToDownload = null
+            // Chapters at or before this position are outside the keep window. With
+            // slots = 0 the just-completed chapter is the last read chapter and is
+            // included explicitly, since its read flag may not be persisted yet.
+            val cutoff = currentChapterPosition - removeAfterReadSlots
+            if (cutoff < 0) return@launchNonCancellable
 
-        if (chapterToDelete != null) {
-            enqueueDeleteReadChapters(chapterToDelete)
+            val chaptersToDelete = chapters
+                .take(cutoff + 1)
+                .filter { it.read || it.id == currentChapterId }
+            if (chaptersToDelete.isEmpty()) return@launchNonCancellable
+
+            // If a chapter is completely read, no need to download it
+            chapterToDownload = null
+
+            downloadManager.enqueueChaptersToDelete(chaptersToDelete, manga)
+            // Flush right away instead of waiting for the reader to close: with the
+            // pending queue only flushed on activity finish, deletions appeared to
+            // stop during long reading sessions.
+            downloadManager.deletePendingChapters()
         }
     }
 
@@ -1576,19 +1720,6 @@ class ReaderViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Enqueues this [chapter] to be deleted when [deletePendingChapters] is called. The download
-     * manager handles persisting it across process deaths.
-     */
-    private fun enqueueDeleteReadChapters(chapter: ReaderChapter) {
-        if (!chapter.chapter.read) return
-        val manga = manga ?: return
-
-        viewModelScope.launchNonCancellable {
-            downloadManager.enqueueChaptersToDelete(listOf(chapter.chapter.toDomainChapter()!!), manga)
-        }
-    }
-
-    /**
      * Deletes all the pending chapters. This operation will run in a background thread and errors
      * are ignored.
      */
@@ -1728,7 +1859,7 @@ class ReaderViewModel @JvmOverloads constructor(
                 if (existingDir.isFile) {
                     existingDir.archiveReader(context).use { archiveReader ->
                         archiveReader.useEntries { entries ->
-                            entries.filter { it.isFile && it.name?.endsWith(".html") == false }.forEach { entry ->
+                            entries.filter { it.isFile && !it.name.endsWith(".html") }.forEach { entry ->
                                 tmpDir.createFile(entry.name)?.openOutputStream()?.use { os ->
                                     archiveReader.getInputStream(entry.name)?.use { it.copyTo(os) }
                                 }
@@ -1859,5 +1990,10 @@ class ReaderViewModel @JvmOverloads constructor(
         data class SavedImage(val result: SaveImageResult) : Event
         data class ShareImage(val uri: Uri, val page: ReaderPage) : Event
         data class CopyImage(val uri: Uri) : Event
+    }
+
+    private companion object {
+        const val SHIORI_PUSH_COOLDOWN_MS = 10_000L
+        const val SHIORI_CHAPTER_EPSILON = 0.0001
     }
 }

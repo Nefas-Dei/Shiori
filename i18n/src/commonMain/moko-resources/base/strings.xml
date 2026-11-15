@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Tsundoku</string>
+    <string name="app_name" translatable="false">Shiori</string>
 
     <!-- Generic strings -->
     <string name="on">On</string>
@@ -219,7 +219,7 @@
     <string name="pref_library_summary">Categories, global update, chapter swipe</string>
     <string name="pref_reader_summary">Reading mode, display, navigation</string>
     <string name="pref_downloads_summary">Automatic download, download ahead</string>
-    <string name="pref_tracking_summary">One-way progress sync, enhanced sync</string>
+    <string name="pref_tracking_summary">Tracker progress sync, two-way Shiori Sync</string>
     <string name="pref_browse_summary">Sources, extensions, global search</string>
     <string name="pref_backup_summary">Manual &amp; automatic backups, storage space</string>
     <string name="pref_security_summary">App lock, secure screen</string>
@@ -547,7 +547,7 @@
     <string name="pref_auto_update_manga_sync">Update progress after reading</string>
     <string name="pref_auto_update_manga_on_mark_read">Update progress when marked as read</string>
     <string name="services">Trackers</string>
-    <string name="tracking_info">One-way sync to update the chapter progress in external tracker services. Set up tracking for individual entries from their tracking button.</string>
+    <string name="tracking_info">One-way sync to update the chapter progress in external tracker services. Shiori Sync also syncs your exact reading position both ways with the browser extension. Set up tracking for individual entries from their tracking button.</string>
     <string name="enhanced_services">Enhanced trackers</string>
     <string name="enhanced_services_not_installed">Available but source not installed: %s</string>
     <string name="enhanced_tracking_info">Provides enhanced features for specific sources. Entries are automatically tracked when added to your library.</string>
@@ -564,6 +564,11 @@
     <string name="pref_restore_backup">Restore backup</string>
     <string name="pref_restore_backup_summ">Restore library from backup file</string>
     <string name="pref_backup_interval">Automatic backup frequency</string>
+    <string name="pref_backup_retention">Auto-delete old backups</string>
+    <string name="backup_retention_7_days">After 7 days</string>
+    <string name="backup_retention_14_days">After 14 days</string>
+    <string name="backup_retention_30_days">After 30 days</string>
+    <string name="backup_retention_90_days">After 90 days</string>
     <string name="action_create">Create</string>
     <string name="backup_created">Backup created</string>
     <string name="invalid_backup_file">Invalid backup file:</string>

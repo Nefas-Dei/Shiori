@@ -1,0 +1,41 @@
+name: Sync upstream
+
+on:
+  schedule:
+    # Daily, off the top of the hour to avoid GitHub's cron congestion.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge upstream (tsundoku) into dev
+        run: |
+          git remote add upstream https://github.com/tsundoku-otaku/tsundoku.git
+          git fetch upstream main
+          if git merge --no-edit upstream/main; then
+            echo "Merge from upstream/main is conflict-free."
+          else
+            git merge --abort
+            echo "::error::Merging upstream/main into dev produced conflicts. Resolve manually: git fetch https://github.com/tsundoku-otaku/tsundoku.git main && git merge FETCH_HEAD on dev."
+            exit 1
+          fi
+
+      - name: Push (no-op when nothing changed)
+        run: git push origin dev
