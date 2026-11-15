@@ -81,7 +81,6 @@ fun TrackInfoDialogHome(
     onCopyLink: (TrackItem) -> Unit,
     onTogglePrivate: (TrackItem) -> Unit,
     onSyncNow: (TrackItem) -> Unit,
-    onContinueInBrowser: (TrackItem) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -135,8 +134,6 @@ fun TrackInfoDialogHome(
                         .takeIf { supportsPrivate },
                     onSyncNow = { onSyncNow(item) }
                         .takeIf { item.tracker.id == TrackerManager.CUSTOM },
-                    onContinueInBrowser = { onContinueInBrowser(item) }
-                        .takeIf { item.tracker.id == TrackerManager.CUSTOM },
                 )
             } else {
                 TrackInfoItemEmpty(
@@ -169,7 +166,6 @@ private fun TrackInfoItem(
     private: Boolean,
     onTogglePrivate: (() -> Unit)?,
     onSyncNow: (() -> Unit)?,
-    onContinueInBrowser: (() -> Unit)?,
 ) {
     val context = LocalContext.current
     Column {
@@ -222,13 +218,15 @@ private fun TrackInfoItem(
             }
             VerticalDivider()
             TrackInfoItemMenu(
-                onOpenInBrowser = onOpenInBrowser,
+                onOpenInBrowser = onOpenInBrowser
+                    // The Shiori Sync tracker stores a reading position, not a
+                    // service page worth opening.
+                    .takeIf { tracker.id != TrackerManager.CUSTOM },
                 onRemoved = onRemoved,
                 onCopyLink = onCopyLink,
                 private = private,
                 onTogglePrivate = onTogglePrivate,
                 onSyncNow = onSyncNow,
-                onContinueInBrowser = onContinueInBrowser,
             )
         }
 
@@ -336,13 +334,12 @@ private fun TrackInfoItemEmpty(
 
 @Composable
 private fun TrackInfoItemMenu(
-    onOpenInBrowser: () -> Unit,
+    onOpenInBrowser: (() -> Unit)?,
     onRemoved: () -> Unit,
     onCopyLink: () -> Unit,
     private: Boolean,
     onTogglePrivate: (() -> Unit)?,
     onSyncNow: (() -> Unit)?,
-    onContinueInBrowser: (() -> Unit)?,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier = Modifier.wrapContentSize(Alignment.TopStart)) {
@@ -365,22 +362,15 @@ private fun TrackInfoItemMenu(
                     },
                 )
             }
-            if (onContinueInBrowser != null) {
+            if (onOpenInBrowser != null) {
                 DropdownMenuItem(
-                    text = { Text(stringResource(TDMR.strings.action_continue_in_browser)) },
+                    text = { Text(stringResource(MR.strings.action_open_in_browser)) },
                     onClick = {
-                        onContinueInBrowser()
+                        onOpenInBrowser()
                         expanded = false
                     },
                 )
             }
-            DropdownMenuItem(
-                text = { Text(stringResource(MR.strings.action_open_in_browser)) },
-                onClick = {
-                    onOpenInBrowser()
-                    expanded = false
-                },
-            )
             DropdownMenuItem(
                 text = { Text(stringResource(MR.strings.action_copy_link)) },
                 onClick = {

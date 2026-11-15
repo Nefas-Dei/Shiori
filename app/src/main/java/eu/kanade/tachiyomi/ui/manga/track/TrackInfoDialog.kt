@@ -189,9 +189,6 @@ data class TrackInfoDialogHomeScreen(
             onCopyLink = { context.copyTrackerLink(it) },
             onTogglePrivate = viewModel::togglePrivate,
             onSyncNow = viewModel::syncNow,
-            onContinueInBrowser = {
-                viewModel.continueInBrowser(it) { url -> context.openInBrowser(url) }
-            },
         )
     }
 
@@ -331,34 +328,8 @@ data class TrackInfoDialogHomeScreen(
                     logcat(LogPriority.WARN, e) { "Shiori Sync manual push failed" }
                     withUIContext { context.toast(e.message) }
                 }
-            }
-        }
-
-        /**
-         * Opens the position the extension last synced. Prefers the exact chapter URL; falls
-         * back to the series URL, then the locally known tracking URL.
-         */
-        fun continueInBrowser(item: TrackItem, onReady: (String) -> Unit) {
-            val track = item.track ?: return
-            val tracker = item.tracker as? CustomTracker ?: return
-            viewModelScope.launchNonCancellable {
-                val context = Injekt.get<Application>()
-                try {
-                    val entry = tracker.fetchRemoteEntry(track.toDbTrack())
-                    val url = entry?.chapterUrl?.takeIf { it.isNotBlank() }
-                        ?: entry?.seriesUrl?.takeIf { it.isNotBlank() }
-                        ?: track.remoteUrl.takeIf { it.isNotBlank() }
-                    if (url == null) {
-                        withUIContext { context.toast(TDMR.strings.track_shiori_no_entry) }
-                    } else {
-                        withUIContext { onReady(url) }
-                    }
-                } catch (e: Exception) {
-                    logcat(LogPriority.WARN, e) { "Shiori Sync continue-in-browser failed" }
-                    withUIContext { context.toast(TDMR.strings.track_shiori_no_entry) }
-                }
-            }
-        }
+             }
+         }
 
         private fun List<Track>.mapToTrackItem(): List<TrackItem> {
             val trackerManager = Injekt.get<TrackerManager>()
