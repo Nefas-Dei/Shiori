@@ -35,14 +35,6 @@ import java.security.MessageDigest
 import kotlin.math.max
 import tachiyomi.domain.track.model.Track as DomainTrack
 
-/** Latest server-side position for a tracked title. */
-data class ShioriRemoteEntry(
-    val chapter: Double,
-    val chapterTitle: String?,
-    val chapterUrl: String?,
-    val seriesUrl: String?,
-)
-
 /**
  * Custom tracker backed by the self-hosted Shiori sync server.
  *
@@ -121,7 +113,12 @@ class CustomTracker(id: Long) : BaseTracker(id, "Shiori Sync"), DeletableTracker
 
     override suspend fun update(track: Track, didReadChapter: Boolean): Track {
         if (!isLoggedIn) return track
-        if (track.progress_site.isBlank() || track.progress_series_key.isBlank()) return track
+        if (track.progress_site.isBlank() || track.progress_series_key.isBlank()) {
+            logcat(LogPriority.WARN) {
+                "Shiori Sync track for '${track.title}' has no site/series key bound; skipping update"
+            }
+            return track
+        }
 
         if (didReadChapter) {
             track.progress_percent = 100.0
@@ -161,29 +158,10 @@ class CustomTracker(id: Long) : BaseTracker(id, "Shiori Sync"), DeletableTracker
             seriesKey = track.progress_series_key,
             title = track.title,
             seriesUrl = track.tracking_url,
+            allowPrefixMatch = true,
         ) ?: return track
         applyEntry(track, entry)
         return track
-    }
-
-    /**
-     * Returns the server-side position for this track without mutating local state, so the UI
-     * can offer "Continue in browser" with the exact chapter the extension last synced.
-     */
-    suspend fun fetchRemoteEntry(track: Track): ShioriRemoteEntry? {
-        if (!isLoggedIn) return null
-        val entry = findEntry(
-            site = track.progress_site,
-            seriesKey = track.progress_series_key,
-            title = track.title,
-            seriesUrl = track.tracking_url,
-        ) ?: return null
-        return ShioriRemoteEntry(
-            chapter = entry.number("chapter") ?: 0.0,
-            chapterTitle = entry.string("chapter_title"),
-            chapterUrl = entry.string("chapter_url"),
-            seriesUrl = entry.string("series_url"),
-        )
     }
 
     override suspend fun delete(track: DomainTrack) {
@@ -212,6 +190,7 @@ class CustomTracker(id: Long) : BaseTracker(id, "Shiori Sync"), DeletableTracker
         seriesKey: String,
         title: String,
         seriesUrl: String,
+        allowPrefixMatch: Boolean = false,
     ): JsonObject? {
         val query = if (site.isNotBlank() && seriesKey.isNotBlank()) {
             "site=${URLEncoder.encode(site, Charsets.UTF_8.name())}" +
@@ -224,13 +203,29 @@ class CustomTracker(id: Long) : BaseTracker(id, "Shiori Sync"), DeletableTracker
             client.newCall(GET(apiUrl("/progress?$query"), authHeaders())).awaitSuccess()
         }
         val entries = response.use { parseEntries(it.body.string()) }
-        return entries.firstOrNull { entry ->
-            val entrySite = entry.string("site")
-            val entryKey = entry.string("series_key")
+        return if (site.isNotBlank() && seriesKey.isNotBlank()) {
+            val siteEntries = entries.filter { it.string("site") == site }
+            val exact = siteEntries.firstOrNull { it.string("series_key") == seriesKey }
             when {
-                site.isNotBlank() && seriesKey.isNotBlank() -> entrySite == site && entryKey == seriesKey
-                seriesUrl.isNotBlank() -> entry.string("series_url") == seriesUrl
-                else -> entry.string("series_title").equals(title, ignoreCase = true)
+                exact != null -> exact
+                // Older builds keyed the same series differently (a title slug
+                // versus a URL slug), so a track can stay bound to a key that
+                // no longer matches anything. Fall back to a same-site prefix
+                // match so refresh() re-binds the track to the canonical key;
+                // never used by delete() so a stale binding cannot delete the
+                // canonical entry.
+                allowPrefixMatch -> siteEntries.firstOrNull { entry ->
+                    val entryKey = entry.string("series_key").orEmpty()
+                    entryKey.startsWith(seriesKey) || seriesKey.startsWith(entryKey)
+                }
+                else -> null
+            }
+        } else {
+            entries.firstOrNull { entry ->
+                when {
+                    seriesUrl.isNotBlank() -> entry.string("series_url") == seriesUrl
+                    else -> entry.string("series_title").equals(title, ignoreCase = true)
+                }
             }
         }
     }

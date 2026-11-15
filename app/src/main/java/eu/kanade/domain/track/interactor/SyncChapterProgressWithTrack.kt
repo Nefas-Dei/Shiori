@@ -69,8 +69,23 @@ class SyncChapterProgressWithTrack(
             .sortedBy { it.chapterNumber }
             .filter { it.isRecognizedNumber }
 
+        // Chapters strictly below the server position are behind the furthest
+        // read and get marked. The chapter the server points AT is only marked
+        // when the server says it is completed (percent 100): an in-progress
+        // position (e.g. "reading 690 at 40%") must not mark 690 as read the
+        // moment the user opens it.
+        val serverChapter = remoteTrack.lastChapterRead
+        val serverChapterCompleted = remoteTrack.progressPercent >= 100.0
         val chapterUpdates = sortedChapters
-            .filter { chapter -> chapter.chapterNumber <= remoteTrack.lastChapterRead && !chapter.read }
+            .filter { chapter ->
+                !chapter.read && (
+                    chapter.chapterNumber < serverChapter - CHAPTER_NUMBER_EPSILON ||
+                        (
+                            serverChapterCompleted &&
+                                abs(chapter.chapterNumber - serverChapter) <= CHAPTER_NUMBER_EPSILON
+                            )
+                    )
+            }
             .map { it.copy(read = true).toChapterUpdate() }
 
         // Novel readers persist their position as a 0-100% scroll value in the
