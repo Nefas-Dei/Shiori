@@ -17,9 +17,6 @@ Discover and read novels and more – easier than ever on your Android device.
 [![CI](https://img.shields.io/github/actions/workflow/status/Nefas-Dei/Shiori/build.yml?labelColor=27303D)](https://github.com/Nefas-Dei/Shiori/actions/workflows/build.yml)
 [![License: Apache-2.0](https://img.shields.io/github/license/Nefas-Dei/Shiori?labelColor=27303D&color=0877d2)](/LICENSE)
 
-Upstream Weblate (Tsundoku):
-[![Translation status](https://img.shields.io/weblate/progress/tsundoku?labelColor=27303D&color=946300)](https://hosted.weblate.org/engage/tsundoku/)
-
 Upstream Weblate (Mihon):
 [![Translation status](https://img.shields.io/weblate/progress/mihon?labelColor=27303D&color=946300)](https://hosted.weblate.org/engage/mihon/)
 
@@ -29,9 +26,10 @@ Upstream Weblate (Mihon):
 
 *Requires Android 8.0 or higher.*
 
-## Features
-
+</div>
 <div align="left">
+  
+## Features
 
 * Local reading of content, including: EPUBs, TXT, HTML.
 * A configurable reader with multiple viewers, font colors and themes, among other settings.
@@ -49,7 +47,6 @@ Upstream Weblate (Mihon):
 * In-app translation of text
 * Plus much more...
 
-</div>
 
 ## Companion projects
 
@@ -75,7 +72,12 @@ Thank you to all the people who have contributed!
     <img src="https://contrib.rocks/image?repo=Nefas-Dei/Shiori" alt="Shiori app contributors" title="Shiori app contributors" width="800"/>
 </a>
 
-Upstream contributors: [Tsundoku](https://github.com/tsundoku-otaku/tsundoku/graphs/contributors) · [Mihon](https://github.com/mihonapp/mihon/graphs/contributors)
+
+<div align="center">
+  
+  Upstream contributors: [Tsundoku](https://github.com/tsundoku-otaku/tsundoku/graphs/contributors) · [Mihon](https://github.com/mihonapp/mihon/graphs/contributors) 
+
+</div>
 
 ### Disclaimer
 
