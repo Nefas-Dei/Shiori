@@ -22,7 +22,7 @@ Upstream Weblate (Mihon):
 
 ## Download
 
-[![Shiori Stable](https://img.shields.io/github/v/release/Nefas-Dei/Shiori.svg?maxAge=3600&label=Stable&labelColor=06599d&color=043b69)](https://github.com/Nefas-Dei/Shiori/releases)
+[![Shiori Stable](https://img.shields.io/github/v/release/Nefas-Dei/Shiori.svg?maxAge=3600&label=Stable&labelColor=06599d&color=043b690)](https://github.com/Nefas-Dei/Shiori/releases)
 
 *Requires Android 8.0 or higher.*
 
