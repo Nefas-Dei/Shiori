@@ -32,6 +32,10 @@ jobs:
 
       - name: Dependency Review
         if: github.event_name == 'pull_request'
+        # Non-fatal: the fork does not have dependency graph enabled, which
+        # makes this action error out ("not supported on this repository")
+        # and block every pull request before the build even starts.
+        continue-on-error: true
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
 
       - name: Count Commits
