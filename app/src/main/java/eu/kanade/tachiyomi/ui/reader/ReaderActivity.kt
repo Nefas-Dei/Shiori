@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -543,6 +544,35 @@ class ReaderActivity : BaseActivity() {
                         .then(if (statusBarAtBottom) Modifier else Modifier.statusBarsPadding()),
                 )
             }
+
+            // Find-in-chapter bar (top overlay). Last child so it draws above the toolbars.
+            androidx.activity.compose.BackHandler(enabled = showFindDialog) {
+                dismissFindDialog()
+            }
+
+            if (showFindDialog) {
+                FindInChapterDialog(
+                    query = findQuery,
+                    total = findTotal,
+                    current = findCurrent,
+                    onQueryChange = { query ->
+                        findQuery = query
+                        searchInChapter(query)
+                    },
+                    onDismiss = ::dismissFindDialog,
+                    onNext = ::findInChapterNext,
+                    onPrevious = ::findInChapterPrevious,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(
+                            top = if (state.menuVisible) {
+                                with(density) { menuTopBarPx.intValue.toDp() }
+                            } else {
+                                0.dp
+                            },
+                        ),
+                )
+            }
         }
 
         val onDismissRequest = viewModel::closeDialog
@@ -671,26 +701,6 @@ class ReaderActivity : BaseActivity() {
                     viewModel.reorderQuotes(reorderedQuotes)
                     quotesState.value = viewModel.getQuotes()
                 },
-            )
-        }
-
-        // Find-in-chapter dialog
-        androidx.activity.compose.BackHandler(enabled = showFindDialog) {
-            dismissFindDialog()
-        }
-
-        if (showFindDialog) {
-            FindInChapterDialog(
-                query = findQuery,
-                total = findTotal,
-                current = findCurrent,
-                onQueryChange = { query ->
-                    findQuery = query
-                    searchInChapter(query)
-                },
-                onDismiss = ::dismissFindDialog,
-                onNext = ::findInChapterNext,
-                onPrevious = ::findInChapterPrevious,
             )
         }
     }
