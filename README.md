@@ -14,11 +14,13 @@ Discover and read novels and more – easier than ever on your Android device.
 [![Discord server](https://img.shields.io/discord/1475219284551536653.svg?label=&labelColor=6A7EC2&color=7389D8&logo=discord&logoColor=FFFFFF)](https://discord.gg/RycBkEgrPE)
 [![GitHub downloads](https://img.shields.io/github/downloads/Nefas-Dei/Shiori/total?label=downloads&labelColor=27303D&color=0D1117&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/Nefas-Dei/Shiori/releases)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/Nefas-Dei/Shiori/build.yml?labelColor=27303D)](https://github.com/Nefas-Dei/Shiori/actions/workflows/build_push.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/Nefas-Dei/Shiori/build.yml?labelColor=27303D)](https://github.com/Nefas-Dei/Shiori/actions/workflows/build.yml)
 [![License: Apache-2.0](https://img.shields.io/github/license/Nefas-Dei/Shiori?labelColor=27303D&color=0877d2)](/LICENSE)
+
+Upstream Weblate (Tsundoku):
 [![Translation status](https://img.shields.io/weblate/progress/tsundoku?labelColor=27303D&color=946300)](https://hosted.weblate.org/engage/tsundoku/)
 
-Upstream Weblate:
+Upstream Weblate (Mihon):
 [![Translation status](https://img.shields.io/weblate/progress/mihon?labelColor=27303D&color=946300)](https://hosted.weblate.org/engage/mihon/)
 
 ## Download
@@ -34,6 +36,7 @@ Upstream Weblate:
 * Local reading of content, including: EPUBs, TXT, HTML.
 * A configurable reader with multiple viewers, font colors and themes, among other settings.
 * Tracker support: [NovelUpdates](https://www.novelupdates.com/) and [NovelList](https://www.novellist.co/), plus the classics: [MangaBaka](https://mangabaka.org), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/), [Kitsu](https://kitsu.app/), [MangaUpdates](https://mangaupdates.com), [Shikimori](https://shikimori.one), [Bangumi](https://bgm.tv/), and [Hikka](https://hikka.io/) support.
+* **Shiori Sync**: 2-way reading progress (chapter, scroll position and paragraph) between this app and your desktop browser via the Shiori browser extension and a self-hosted sync server.
 * Categories to organize your library.
 * Light and dark themes.
 * Schedule updating your library for new chapters.
@@ -47,6 +50,11 @@ Upstream Weblate:
 * Plus much more...
 
 </div>
+
+## Companion projects
+
+* [Shiori-Extension](https://github.com/Nefas-Dei/Shiori-Extension) — browser extension that syncs your exact reading position (chapter, scroll percent, paragraph) with the app.
+* [Shiori-Server](https://github.com/Nefas-Dei/Shiori-Server) — the tiny Cloudflare Worker + D1 sync server the app and extension talk to (self-hostable).
 
 ## Contributing
 
@@ -63,9 +71,11 @@ Forked from [Tsundoku](https://github.com/tsundoku-otaku/tsundoku), a fork of [M
 
 Thank you to all the people who have contributed!
 
-<a href="https://github.com/tsundoku-otaku/tsundoku/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=tsundoku-otaku/tsundoku" alt="Tsundoku app contributors" title="Tsundoku app contributors" width="800"/>
+<a href="https://github.com/Nefas-Dei/Shiori/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=Nefas-Dei/Shiori" alt="Shiori app contributors" title="Shiori app contributors" width="800"/>
 </a>
+
+Upstream contributors: [Tsundoku](https://github.com/tsundoku-otaku/tsundoku/graphs/contributors) · [Mihon](https://github.com/mihonapp/mihon/graphs/contributors)
 
 ### Disclaimer
 
